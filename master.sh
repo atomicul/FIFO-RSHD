@@ -3,6 +3,7 @@
 MASTER_PIPE="master_pipe"
 SLAVES=8
 SLAVE_FILES_DIRECTORY="fifo"
+CLIENT_FILE_SHAPE="/tmp/rshd-%s"
 declare -a SLAVE_FILES
 declare -i CURRENT_PROCESS
 CURRENT_PROCESS=0
@@ -21,8 +22,21 @@ main() {
 
 
     while true; do
-        cat <"$MASTER_PIPE" >"${SLAVE_FILES[$((CURRENT_PROCESS + 1))]}"
-        CURRENT_PROCESS=$(( (CURRENT_PROCESS + 1) % SLAVES ))
+        declare -a requests
+        requests=()
+
+        while IFS= read -r -d '' match; do
+            requests+=("$match")
+        done < <(perl -0777 -ne 'while (/BEGIN-REQ\s*\[(.*?)\]\s*END-REQ/gs) { print "$1\0" }' "$MASTER_PIPE")
+
+        for request in "${requests[@]}"
+        do
+            pid="${request%%:*}"
+            command="${request#*:}"
+            printf '%s\n%s\n' "$(printf "$CLIENT_FILE_SHAPE" "$pid")" "$command" > "${SLAVE_FILES[$(( CURRENT_PROCESS + 1 ))]}"
+
+            CURRENT_PROCESS=$(( (CURRENT_PROCESS + 1) % SLAVES ))
+        done
     done
 }
 
