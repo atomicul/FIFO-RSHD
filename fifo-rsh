@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-CLIENT_FILE_SHAPE="/tmp/fifo-rsh-%s"
+SOCKET_DIR="/tmp/fifo-rsh-sockets"
+CLIENT_FILE_SHAPE="$SOCKET_DIR/fifo-rsh-%s"
 REQUEST_SHAPE="${REQUEST_SHAPE:-BEGIN-REQ[%s:%s]END-REQ}"
 
 if [[ $# -ne 1 ]]; then
@@ -8,15 +9,21 @@ if [[ $# -ne 1 ]]; then
     exit 1
 fi
 
+if [[ ! -d "$SOCKET_DIR" ]]; then
+    mkdir -p "$SOCKET_DIR"
+    chmod 777 "$SOCKET_DIR"
+fi
+
 while true; do
     echo -n "rshd>"
     read command
 
     client_file=`printf "$CLIENT_FILE_SHAPE" "$$"`
+    rm -f "$client_file"
     mkfifo "$client_file" || exit 1
+    chmod a+w "$client_file"
 
     printf "$REQUEST_SHAPE" "$client_file" "$command" >"$1"
 
     cat "$client_file"
-    rm -f "$client_file"
 done

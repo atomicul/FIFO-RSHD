@@ -17,6 +17,7 @@ CURRENT_PROCESS=0
 
 main() {
     mkfifo "$MASTER_PIPE" || exit 1
+    chmod a+w "$MASTER_PIPE"
 
     for i in `seq $SLAVES`; do
         file="${SLAVE_FILES_DIRECTORY}/fifo_$i"
