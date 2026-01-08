@@ -17,7 +17,7 @@ main() {
         file="${SLAVE_FILES_DIRECTORY}/fifo_$i"
         mkfifo "$file" || exit 1
         SLAVE_FILES[$i]="$file"
-        ./slave.sh $file &
+        ./worker $file &
     done
 
 
